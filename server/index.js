@@ -45,8 +45,12 @@ app.get('/api/articles/:slug', async (req, res) => {
     const row = result.rows[0];
 
     console.log('Found article:', row);
+    console.log('ispublic value:', row?.ispublic, 'type:', typeof row?.ispublic);
     if (!row) return res.status(404).json({ error: 'Article not found' });
-    if (!row.ispublic) return res.status(403).json({ error: 'This article is private' });
+    if (!row.ispublic) {
+      console.log('Article is private, ispublic is:', row.ispublic);
+      return res.status(403).json({ error: 'This article is private' });
+    }
     res.json(row);
   } catch (error) {
     console.error('Error fetching article:', error);
@@ -69,7 +73,7 @@ app.post('/api/articles', async (req, res) => {
     console.log('Creating article:', { id, title, type, slug });
 
     await db.query(
-      'INSERT INTO articles (id, title, content, type, isPublic, createdAt, updatedAt, slug) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      'INSERT INTO articles (id, title, content, type, ispublic, createdat, updatedat, slug) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
       [id, title, content, type, 0, now, now, slug]
     );
 
@@ -89,7 +93,7 @@ app.put('/api/articles/:id', async (req, res) => {
 
     console.log('Updating article:', { id: req.params.id, title, isPublic });
     const result = await db.query(
-      'UPDATE articles SET title = $1, content = $2, isPublic = $3, updatedAt = $4 WHERE id = $5',
+      'UPDATE articles SET title = $1, content = $2, ispublic = $3, updatedat = $4 WHERE id = $5',
       [title, content, isPublic ? 1 : 0, now, req.params.id]
     );
 
