@@ -46,7 +46,7 @@ app.get('/api/articles/:slug', async (req, res) => {
 
     console.log('Found article:', row);
     if (!row) return res.status(404).json({ error: 'Article not found' });
-    if (!row.isPublic) return res.status(403).json({ error: 'This article is private' });
+    if (!row.ispublic) return res.status(403).json({ error: 'This article is private' });
     res.json(row);
   } catch (error) {
     console.error('Error fetching article:', error);
