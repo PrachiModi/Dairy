@@ -45,10 +45,8 @@ app.get('/api/articles/:slug', async (req, res) => {
     const row = result.rows[0];
 
     console.log('Found article:', row);
-    console.log('ispublic value:', row?.ispublic, 'type:', typeof row?.ispublic);
     if (!row) return res.status(404).json({ error: 'Article not found' });
-    if (!row.ispublic) {
-      console.log('Article is private, ispublic is:', row.ispublic);
+    if (parseInt(row.ispublic) !== 1) {
       return res.status(403).json({ error: 'This article is private' });
     }
     res.json(row);
