@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
+import { existsSync } from 'fs';
 import db from './db.js';
 import { v4 as uuid } from 'uuid';
 
@@ -11,7 +12,12 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(join(__dirname, '../client/dist')));
+
+// Serve static files from client dist folder
+const staticPath = resolve(__dirname, '../client/dist');
+console.log('Serving static files from:', staticPath);
+console.log('Static path exists:', existsSync(staticPath));
+app.use(express.static(staticPath));
 
 // API Routes
 
@@ -90,7 +96,7 @@ app.delete('/api/articles/:id', (req, res) => {
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, '../client/dist/index.html'));
+  res.sendFile(resolve(__dirname, '../client/dist/index.html'));
 });
 
 app.listen(PORT, () => {
