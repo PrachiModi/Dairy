@@ -2,9 +2,7 @@ node_modules/
 .DS_Store
 .env
 .env.local
-dist/
 build/
 *.log
 server/db/diary.sqlite
-client/dist/
 .vite/
