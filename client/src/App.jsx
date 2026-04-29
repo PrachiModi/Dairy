@@ -146,7 +146,9 @@ function ArticleView({ article, onEdit, onDelete, onTogglePublic }) {
       </div>
 
       <div className="article-content">
-        {article.content}
+        {article.content.split('\n').map((line, i) => (
+          <div key={i}>{line || ' '}</div>
+        ))}
       </div>
 
       <div className="article-actions">

@@ -30,7 +30,9 @@ function PublicArticle() {
           <span className="date">{new Date(article.createdAt).toLocaleDateString()}</span>
         </div>
         <div className="content">
-          {article.content}
+          {article.content.split('\n').map((line, i) => (
+            <div key={i}>{line || ' '}</div>
+          ))}
         </div>
       </div>
     </div>

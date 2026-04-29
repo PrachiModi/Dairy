@@ -22,76 +22,93 @@ app.use(express.static(staticPath));
 // API Routes
 
 // Get all articles (private ones only for owner, public for everyone)
-app.get('/api/articles', (req, res) => {
-  const isOwner = req.query.owner === 'true';
+app.get('/api/articles', async (req, res) => {
+  try {
+    const isOwner = req.query.owner === 'true';
+    const query = isOwner
+      ? 'SELECT * FROM articles ORDER BY createdAt DESC'
+      : 'SELECT * FROM articles WHERE isPublic = 1 ORDER BY createdAt DESC';
 
-  if (isOwner) {
-    db.all('SELECT * FROM articles ORDER BY createdAt DESC', (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
-  } else {
-    db.all('SELECT * FROM articles WHERE isPublic = 1 ORDER BY createdAt DESC', (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
+    const result = await db.query(query);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Get single article by slug
-app.get('/api/articles/:slug', (req, res) => {
-  db.get('SELECT * FROM articles WHERE slug = ?', [req.params.slug], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+app.get('/api/articles/:slug', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM articles WHERE slug = $1', [req.params.slug]);
+    const row = result.rows[0];
+
     if (!row) return res.status(404).json({ error: 'Article not found' });
     if (!row.isPublic) return res.status(403).json({ error: 'This article is private' });
     res.json(row);
-  });
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Create article
-app.post('/api/articles', (req, res) => {
-  const { title, content, type } = req.body;
-  if (!title || !content || !type) {
-    return res.status(400).json({ error: 'Title, content, and type are required' });
-  }
-
-  const id = uuid();
-  const slug = generateSlug(title);
-  const now = new Date().toISOString();
-
-  db.run(
-    'INSERT INTO articles (id, title, content, type, isPublic, createdAt, updatedAt, slug) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, title, content, type, 0, now, now, slug],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id, title, content, type, isPublic: 0, createdAt: now, updatedAt: now, slug });
+app.post('/api/articles', async (req, res) => {
+  try {
+    const { title, content, type } = req.body;
+    if (!title || !content || !type) {
+      return res.status(400).json({ error: 'Title, content, and type are required' });
     }
-  );
+
+    const id = uuid();
+    const slug = generateSlug(title);
+    const now = new Date().toISOString();
+
+    console.log('Creating article:', { id, title, type, slug });
+
+    await db.query(
+      'INSERT INTO articles (id, title, content, type, isPublic, createdAt, updatedAt, slug) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [id, title, content, type, 0, now, now, slug]
+    );
+
+    console.log('Article created successfully');
+    res.status(201).json({ id, title, content, type, isPublic: 0, createdAt: now, updatedAt: now, slug });
+  } catch (error) {
+    console.error('Error creating article:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Update article
-app.put('/api/articles/:id', (req, res) => {
-  const { title, content, isPublic } = req.body;
-  const now = new Date().toISOString();
+app.put('/api/articles/:id', async (req, res) => {
+  try {
+    const { title, content, isPublic } = req.body;
+    const now = new Date().toISOString();
 
-  db.run(
-    'UPDATE articles SET title = ?, content = ?, isPublic = ?, updatedAt = ? WHERE id = ?',
-    [title, content, isPublic ? 1 : 0, now, req.params.id],
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      if (this.changes === 0) return res.status(404).json({ error: 'Article not found' });
-      res.json({ success: true });
-    }
-  );
+    const result = await db.query(
+      'UPDATE articles SET title = $1, content = $2, isPublic = $3, updatedAt = $4 WHERE id = $5',
+      [title, content, isPublic ? 1 : 0, now, req.params.id]
+    );
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Article not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating article:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Delete article
-app.delete('/api/articles/:id', (req, res) => {
-  db.run('DELETE FROM articles WHERE id = ?', [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: 'Article not found' });
+app.delete('/api/articles/:id', async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Article not found' });
     res.json({ success: true });
-  });
+  } catch (error) {
+    console.error('Error deleting article:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Serve React app for all other routes
