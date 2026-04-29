@@ -40,9 +40,11 @@ app.get('/api/articles', async (req, res) => {
 // Get single article by slug
 app.get('/api/articles/:slug', async (req, res) => {
   try {
+    console.log('Fetching article by slug:', req.params.slug);
     const result = await db.query('SELECT * FROM articles WHERE slug = $1', [req.params.slug]);
     const row = result.rows[0];
 
+    console.log('Found article:', row);
     if (!row) return res.status(404).json({ error: 'Article not found' });
     if (!row.isPublic) return res.status(403).json({ error: 'This article is private' });
     res.json(row);
@@ -85,11 +87,13 @@ app.put('/api/articles/:id', async (req, res) => {
     const { title, content, isPublic } = req.body;
     const now = new Date().toISOString();
 
+    console.log('Updating article:', { id: req.params.id, title, isPublic });
     const result = await db.query(
       'UPDATE articles SET title = $1, content = $2, isPublic = $3, updatedAt = $4 WHERE id = $5',
       [title, content, isPublic ? 1 : 0, now, req.params.id]
     );
 
+    console.log('Update result:', { rowCount: result.rowCount });
     if (result.rowCount === 0) return res.status(404).json({ error: 'Article not found' });
     res.json({ success: true });
   } catch (error) {
